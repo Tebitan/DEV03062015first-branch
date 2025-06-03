@@ -1,0 +1,34 @@
+/**
+ * Objeto de configuración para búsquedas avanzadas en MongoDB
+ */
+export class MongoDocuments {
+  /**
+   * Filtro de búsqueda (equivale al primer argumento de .find())
+   */
+  filter?: Record<string, any> = {};
+
+  /**
+   * Número de página para paginación (por defecto: 1)
+   */
+  page?: number = 1;
+
+  /**
+   * Cantidad de documentos por página (por defecto: 10)
+   */
+  limit?: number = 10;
+
+  /**
+   * Campos a proyectar (equivale al segundo argumento de .find())
+   */
+  projection?: Record<string, any> = {};
+
+  /**
+   * Ordenamiento (por ejemplo: { createdAt: -1 })
+   */
+  sort?: Record<string, 1 | -1> = {};
+  
+  /**
+   * Tiempo máximo en milisegundos que el servidor puede tardar en ejecutar la consulta
+   */
+  maxTimeMS?: number = 5000;
+}
