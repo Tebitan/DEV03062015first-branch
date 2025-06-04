@@ -1,13 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Document, Types } from 'mongoose';
-import { MongoRepository } from '../../../../shared/infrastructure/mongodb/mongodb.repository';
-import { IMongoService } from '../mongo.service.interface';
-import { Faq } from '../schema/faq.schema';
-import { FaqEntity } from '../../../domain/entities/faq.entity';
+import { MongoRepository } from '../../../shared/infrastructure/mongodb/mongodb.repository';
+import { IMongoService } from './interfaces/mongo.service.interface';
+import { Faq } from './schemas/faq.schema';
+import { FaqEntity } from '../../domain/entities/faq.entity';
 import { ConfigService } from '@nestjs/config';
-import { LEGACY_MONGODB } from '../../../../shared/resources/constants';
-import { MongoDocuments } from '../../../../shared/resources/mongo-documents.options';
+import { LEGACY_MONGODB } from '../../../shared/constants/constants';
+import { MongoQueryOptionsDto } from '../../../shared/domain/mongo-query-options.dto';
 
 /**
  * Servicio de acceso a datos para FAQs implementado sobre MongoDB con Mongoose.
@@ -128,7 +128,7 @@ export class MongoService
    * @param options Opciones de búsqueda avanzadas
    * @returns Lista de FAQs encontradas
    */
-  async findWithOptions(options: MongoDocuments): Promise<FaqEntity[]> {
+  async findWithOptions(options: MongoQueryOptionsDto): Promise<FaqEntity[]> {
     const start = Date.now();
     const logData = {
       transactionId: this.transactionId,

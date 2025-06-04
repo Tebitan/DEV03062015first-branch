@@ -1,8 +1,8 @@
 import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { CreateFaqDto } from '../domain/dto';
-import { MongoService } from '../infrastructure/mongo/impl/mongo.service';
+import { MongoService } from '../infrastructure/mongo/mongo.service';
 import { FaqEntity } from '../domain/entities/faq.entity';
-import { BusinessException } from '../../shared/resources/business-exceptions';
+import { BusinessExceptionDto } from '../../shared/domain/business-exceptions.dto';
 import {
   CODE_200,
   CODE_400,
@@ -10,8 +10,8 @@ import {
   LEGACY_MONGODB,
   MSG_200,
   MSG_400,
-} from '../../shared/resources/constants';
-import { ApiResponseDto } from '../../shared/domain/apiResponse.dto';
+} from '../../shared/constants/constants';
+import { ApiResponseDto } from '../../shared/domain/api-response.dto';
 
 /**
  * Servicio encargado de la lógica de negocio para el manejo de preguntas frecuentes (FAQ).
@@ -62,7 +62,7 @@ export class FaqService {
       });
     } catch (error) {
       this.logger.error(error.message, { transactionId: this.transactionId, stack: error.stack });
-      throw new BusinessException({
+      throw new BusinessExceptionDto({
         legacy: LEGACY_MONGODB,
         transactionId: this.transactionId,
         data: { message: error.message },
@@ -95,7 +95,7 @@ export class FaqService {
       limit: 1,
     });
     if (existing && existing.length > 0) {
-      throw new BusinessException({
+      throw new BusinessExceptionDto({
         responseCode: HttpStatus.BAD_REQUEST,
         messageCode: CODE_400,
         message: MSG_400,

@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongodbModule } from '../shared/infrastructure/mongodb/mongodb.module';
-import { MongoService } from './infrastructure/mongo/impl/mongo.service';
-import { Faq, FaqSchema } from './infrastructure/mongo/schema/faq.schema';
+import { MongoService } from './infrastructure/mongo/mongo.service';
+import { Faq, FaqSchema } from './infrastructure/mongo/schemas/faq.schema';
 import { FaqService } from './application/faq.service';
-import { FaqController } from './interfaces/controller/faq.controller';
-import { TransactionIdProvider } from '../shared/resources/transaction-id.provider';
+import { FaqController } from './controllers/faq.controller';
+import { TransactionIdProvider } from '../shared/providers/transaction-id.provider';
 
 /**
  * Módulo de NestJS que agrupa el controller, service y las dependencias necesarias para FAQs

@@ -1,5 +1,5 @@
-import { MongoDocuments } from '../../../shared/resources/mongo-documents.options';
-import { FaqEntity } from '../../domain/entities/faq.entity';
+import { MongoQueryOptionsDto } from '../../../../shared/domain/mongo-query-options.dto';
+import { FaqEntity } from '../../../domain/entities/faq.entity';
 
 /**
  * Define el contrato para cualquier servicio que interactúe con MongoDB
@@ -29,5 +29,5 @@ export interface IMongoService {
    * Búsqueda avanzada con filtros, paginación, proyección, etc.
    * @param options Opciones avanzadas de consulta
    */
-  findWithOptions(options: MongoDocuments): Promise<FaqEntity[]>;
+  findWithOptions(options: MongoQueryOptionsDto): Promise<FaqEntity[]>;
 }

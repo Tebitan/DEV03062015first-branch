@@ -1,8 +1,8 @@
 import { HttpStatus } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { CODE_500, LEGACY, MSG_500 } from './constants';
+import { CODE_500, LEGACY, MSG_500 } from '../constants/constants';
 
-export class BusinessException extends Error {
+export class BusinessExceptionDto extends Error {
   readonly responseCode: number;
   readonly messageCode: string;
   readonly transactionId: string;

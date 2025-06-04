@@ -1,6 +1,6 @@
 import { LoggerService } from '@nestjs/common';
 import * as winston from 'winston';
-import { LEGACY, SERVICE_NAME } from './constants';
+import { LEGACY, SERVICE_NAME } from '../constants/constants';
 
 export interface LogMetadata {  
   legacy?: string;

@@ -1,7 +1,7 @@
 /**
  * Objeto de configuración para búsquedas avanzadas en MongoDB
  */
-export class MongoDocuments {
+export class MongoQueryOptionsDto {
   /**
    * Filtro de búsqueda (equivale al primer argumento de .find())
    */

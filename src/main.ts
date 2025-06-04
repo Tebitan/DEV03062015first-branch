@@ -4,8 +4,8 @@ import helmet from 'helmet';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { CustomLogger } from './shared/resources/custom-logger.service';
-import { SERVICE_DESCRIPTION, SERVICE_NAME, SERVICE_PREFIX, SERVICE_VERSION } from './shared/resources/constants';
+import { CustomLogger } from './shared/logger/custom-logger.service';
+import { SERVICE_DESCRIPTION, SERVICE_NAME, SERVICE_PREFIX, SERVICE_VERSION } from './shared/constants/constants';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 /**

@@ -1,10 +1,10 @@
 import { FastifyReply } from 'fastify';
 import { Controller, Post, Body, Logger, Inject, Res, HttpStatus } from '@nestjs/common';
-import { FaqService } from '../../application/faq.service';
-import { CreateFaqDto } from '../../domain/dto';
-import { END_POINT_METHOD_FAQ, LEGACY, SERVICE_NAME, SERVICE_PREFIX } from '../../../shared/resources/constants';
+import { FaqService } from '../application/faq.service';
+import { CreateFaqDto } from '../domain/dto';
+import { END_POINT_METHOD_FAQ, LEGACY, SERVICE_NAME, SERVICE_PREFIX } from '../../shared/constants/constants';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ApiResponseDto } from '../../../shared/domain/apiResponse.dto';
+import { ApiResponseDto } from '../../shared/domain/api-response.dto';
 
 /**
  * @description Archivo controlador responsable de manejar las solicitudes entrantes que llegan a un end point.

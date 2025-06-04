@@ -6,7 +6,7 @@ import {
     MaxLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { ALLOWED_TEXT_REGEX } from '../../../shared/resources/constants';
+import { ALLOWED_TEXT_REGEX } from '../../../shared/constants/constants';
 
 /**
  * DTO de peticion para consultar FAQ

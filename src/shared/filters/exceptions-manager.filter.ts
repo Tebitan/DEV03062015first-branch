@@ -5,18 +5,19 @@ import {
     HttpException,
     HttpStatus,
 } from '@nestjs/common';
+import { FastifyReply } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
-import { BusinessException } from '../resources/business-exceptions';
-import { ApiResponseDto } from '../domain/apiResponse.dto';
-import { CODE_400, CODE_500, CODE_504, LEGACY, MSG_400, MSG_500, MSG_504 } from '../resources/constants';
+import { BusinessExceptionDto } from '../domain/business-exceptions.dto';
+import { ApiResponseDto } from '../domain/api-response.dto';
+import { CODE_400, CODE_500, CODE_504, LEGACY, MSG_400, MSG_500, MSG_504 } from '../constants/constants';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
     catch(exception: unknown, host: ArgumentsHost) {
         const ctx = host.switchToHttp();
-        const response = ctx.getResponse();
+        const response = ctx.getResponse<FastifyReply>();
         let apiResponse: ApiResponseDto;
-        if (exception instanceof BusinessException) {
+        if (exception instanceof BusinessExceptionDto) {
             apiResponse = new ApiResponseDto({
                 responseCode: exception.responseCode,
                 messageCode: exception.messageCode,
@@ -59,6 +60,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
                 data: exception,
             });
         }
-        response.status(apiResponse.responseCode).json(apiResponse);
+        response.code(apiResponse.responseCode).send(apiResponse);
     }
 }
