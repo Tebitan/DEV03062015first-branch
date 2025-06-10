@@ -17,6 +17,13 @@ export class Faq {
     lowercase: true,
   })
   answer: string;
+
+  @Prop({
+    type: [Number],
+    required: true,
+    default: [],
+  })
+  embedding: number[];
 }
 
 export type FaqDocument = Faq & Document;

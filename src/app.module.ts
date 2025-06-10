@@ -6,8 +6,6 @@ import { AllExceptionsFilter } from './shared/filters/exceptions-manager.filter'
 import { FaqModule } from './faq/faq.module';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { TimeoutInterceptor } from './shared/interceptors/timeout.interceptor';
-import { TransactionIdProvider } from './shared/providers/transaction-id.provider';
-
 
 @Module({
   imports: [

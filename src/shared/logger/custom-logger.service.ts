@@ -2,14 +2,13 @@ import { LoggerService } from '@nestjs/common';
 import * as winston from 'winston';
 import { LEGACY, SERVICE_NAME } from '../constants/constants';
 
-export interface LogMetadata {  
+export interface LogMetadata {
   legacy?: string;
   request?: any;
   response?: any;
   processingTime?: number;
   transactionId?: string;
-  message?: string;
-  level?: 'error' | 'warn' | 'log' | 'debug' | 'verbose' | 'info';
+  context?: string;
 }
 
 export class CustomLogger implements LoggerService {
@@ -22,7 +21,7 @@ export class CustomLogger implements LoggerService {
         winston.format.timestamp(),
         winston.format.printf(({ level, message, timestamp, ...meta }) => {
           const log = {
-            applicationName:SERVICE_NAME,
+            applicationName: SERVICE_NAME,
             timestamp,
             level,
             methodName: meta.context || '',
@@ -31,34 +30,53 @@ export class CustomLogger implements LoggerService {
             request: meta.request || '',
             response: meta.response || '',
             processingTime: meta.processingTime || '',
-            message,
+            message: typeof message === 'object'
+              ? JSON.stringify(message, null, 2)
+              : message,
           };
           return JSON.stringify(log);
-        })
+        }),
       ),
-      transports: [
-        new winston.transports.Console(),
-      ],
+      transports: [new winston.transports.Console()],
     });
   }
 
-  log(message: string, metadata: LogMetadata = {}, context?: string) {
-    this.logger.info(message, { ...metadata, context });
+  log(message: any, metadata: LogMetadata = {}, context?: string) {
+    const formattedMessage = this.formatMessage(message);
+    this.logger.info(formattedMessage, { ...metadata, context });
   }
 
-  error(message: string, metadata: LogMetadata = {}, trace?: string) {
-    this.logger.error(message, { ...metadata, trace });
+  error(message: any, metadata: LogMetadata = {}, trace?: string) {
+    const formattedMessage = this.formatMessage(message);
+    this.logger.error(formattedMessage, { ...metadata, trace });
   }
 
-  warn(message: string, metadata: LogMetadata = {}, context?: string) {
-    this.logger.warn(message, { ...metadata, context });
+  warn(message: any, metadata: LogMetadata = {}, context?: string) {
+    const formattedMessage = this.formatMessage(message);
+    this.logger.warn(formattedMessage, { ...metadata, context });
   }
 
-  debug(message: string, metadata: LogMetadata = {}, context?: string) {
-    this.logger.debug(message, { ...metadata, context });
+  debug(message: any, metadata: LogMetadata = {}, context?: string) {
+    const formattedMessage = this.formatMessage(message);
+    this.logger.debug(formattedMessage, { ...metadata, context });
   }
 
-  verbose(message: string, metadata: LogMetadata = {}, context?: string) {
-    this.logger.verbose(message, { ...metadata, context });
+  verbose(message: any, metadata: LogMetadata = {}, context?: string) {
+    const formattedMessage = this.formatMessage(message);
+    this.logger.verbose(formattedMessage, { ...metadata, context });
+  }
+
+  private formatMessage(message: any): string {
+    if (typeof message === 'string') {
+      return message;
+    }
+    if (message instanceof Error) {
+      return `${message.name}: ${message.message}`;
+    }
+    try {
+      return JSON.stringify(message, null, 2);
+    } catch {
+      return 'Unserializable message';
+    }
   }
 }

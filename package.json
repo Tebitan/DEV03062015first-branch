@@ -34,9 +34,9 @@
     "class-validator": "^0.14.2",
     "joi": "^17.13.3",
     "mongoose": "^8.15.1",
-    "openai": "^4.103.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "undici": "^6.21.3",
     "uuidv4": "^6.2.13",
     "winston": "^3.17.0"
   },

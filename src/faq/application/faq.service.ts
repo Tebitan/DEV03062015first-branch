@@ -1,17 +1,23 @@
 import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
-import { CreateFaqDto } from '../domain/dto';
+import { ConfigService } from '@nestjs/config';
 import { MongoService } from '../infrastructure/mongo/mongo.service';
+import { ClientRestService } from '../infrastructure/http/rest/client-rest.service';
+import { CreateFaqDto, FindFaqByQuestionDto } from '../domain/dto';
 import { FaqEntity } from '../domain/entities/faq.entity';
 import { BusinessExceptionDto } from '../../shared/domain/business-exceptions.dto';
 import {
   CODE_200,
   CODE_400,
   LEGACY,
+  LEGACY_IA,
   LEGACY_MONGODB,
   MSG_200,
   MSG_400,
 } from '../../shared/constants/constants';
+import { removeAccents } from '../../shared/utils/common-utils';
 import { ApiResponseDto } from '../../shared/domain/api-response.dto';
+import { HttpResponse } from '../../shared/domain/http-client-options.dto';
+import { Embedding } from '../infrastructure/http/rest/dto/rest.dto';
 
 /**
  * Servicio encargado de la lógica de negocio para el manejo de preguntas frecuentes (FAQ).
@@ -31,14 +37,17 @@ import { ApiResponseDto } from '../../shared/domain/api-response.dto';
  * Dependencias:
  * - `MongoService`: Implementación del repositorio Mongo para FAQs.
  * - `ConfigService`: Servicio para acceder a variables de entorno.
+ * - `ClientRestService`: Cliente de HTTP Rest.
  */
 @Injectable()
 export class FaqService {
   private readonly logger = new Logger(FaqService.name);
 
   constructor(
+    private readonly configService: ConfigService,
     @Inject('TransactionId') private readonly transactionId: string,
     private readonly mongoService: MongoService,
+    private readonly clientRestService: ClientRestService,
   ) { }
 
   /**
@@ -49,9 +58,12 @@ export class FaqService {
    * @returns ApiResponseDto
    */
   public async createFaq(createFaqDto: CreateFaqDto): Promise<ApiResponseDto> {
-    await this.validateIfQuestionExists(createFaqDto.question);
     try {
-      const newFaq: FaqEntity = await this.saveFaq(createFaqDto);
+      const { question } = createFaqDto;
+      await this.validateIfQuestionExists(question);
+      const responseLegacy: HttpResponse<Embedding> = await this.generateEmbedding(question);
+      await this.validateResponseLegacy(responseLegacy);
+      const newFaq: FaqEntity = await this.saveFaq(createFaqDto, responseLegacy.data.data[0].embedding);
       return new ApiResponseDto({
         responseCode: HttpStatus.OK,
         messageCode: CODE_200,
@@ -61,6 +73,7 @@ export class FaqService {
         data: newFaq,
       });
     } catch (error) {
+      if (error instanceof BusinessExceptionDto) throw error;
       this.logger.error(error.message, { transactionId: this.transactionId, stack: error.stack });
       throw new BusinessExceptionDto({
         legacy: LEGACY_MONGODB,
@@ -74,11 +87,12 @@ export class FaqService {
    * saveFaq
    * @description Inserta una nueva FAQ en la base de datos
    * @param createFaqDto Datos de la FAQ
+   * @param embedding Dato embedding
    * @param transactionId Identificador de la transacción
    * @returns FaqEntity
    */
-  public async saveFaq(createFaqDto: CreateFaqDto): Promise<FaqEntity> {
-    return this.mongoService.create(createFaqDto);
+  public async saveFaq(createFaqDto: CreateFaqDto, embedding: number[]): Promise<FaqEntity> {
+    return this.mongoService.create({ ...createFaqDto, embedding });
   }
 
   /**
@@ -89,24 +103,91 @@ export class FaqService {
    * @throws BusinessException si la pregunta ya existe
    */
   public async validateIfQuestionExists(question: string): Promise<void> {
-    const normalizedQuestion = question.trim().toLowerCase();
+    const normalizedQuestion = removeAccents(question.trim().toLowerCase());
     const existing = await this.mongoService.findWithOptions({
       filter: { question: normalizedQuestion },
       limit: 1,
     });
     if (existing && existing.length > 0) {
-      throw new BusinessExceptionDto({
-        responseCode: HttpStatus.BAD_REQUEST,
-        messageCode: CODE_400,
-        message: MSG_400,
+      this.throwBusinessError({
         legacy: LEGACY_MONGODB,
-        data: {
-          message: `Ya existe un FAQ con la pregunta proporcionada.`,
-          messageCode: 'FAQ_DUPLICATE_QUESTION',
-          question,
-        },
-        transactionId:this.transactionId
+        messageCode: 'FAQ_DUPLICATE_QUESTION',
+        message: 'Ya existe un FAQ con la pregunta proporcionada.',
+        additionalData: { question },
       });
     }
+  }
+
+  /**
+   * Realiza la validacion de la respuesta del legado externo code http 200
+   * @param responseLegacy Respuesta del legado
+   */
+  public async validateResponseLegacy(responseLegacy: HttpResponse<Embedding>): Promise<void> {
+    if (responseLegacy.status !== HttpStatus.OK) {
+      this.throwBusinessError({
+        legacy: LEGACY_IA,
+        messageCode: 'EMBEDDING_GENERATION_FAILED',
+        message: 'Error generando embedding desde el proveedor externo.',
+        additionalData: { responseLegacy },
+      });
+    }
+    if (!this.isValidEmbeddingResponse(responseLegacy)) {
+      this.throwBusinessError({
+        legacy: LEGACY_IA,
+        messageCode: 'INVALID_EMBEDDING_RESPONSE',
+        message: 'La respuesta del proveedor no contiene un embedding válido.',
+        additionalData: { responseLegacy },
+      });
+    }
+  }
+
+  /**
+   * Realiza la generacion de Embedding
+   * @param input El dato a transformar 
+   * @returns HttpResponse<any>
+   */
+  public async generateEmbedding(input: string): Promise<HttpResponse<any>> {
+    return this.clientRestService.postEmbedding(input);
+  }
+
+  /**
+   * Realiza la validacion de la respuesta del legado
+   * @param responseLegacy Respuesta del legado 
+   * @returns 'True' o 'False'
+   */
+  public isValidEmbeddingResponse(responseLegacy: HttpResponse<Embedding>): boolean {
+    const dataList = responseLegacy?.data?.data;
+    if (!Array.isArray(dataList) || dataList.length === 0) return false;
+    const embedding = dataList[0]?.embedding;
+    return (
+      Array.isArray(embedding) &&
+      embedding.length > 0 &&
+      embedding.every((value) => typeof value === 'number')
+    );
+  }
+
+  /**
+   * Lanza una excepción de negocio personalizada.
+   * @param params Objeto de Exception Comun
+   */
+  public throwBusinessError(params: {
+    legacy: string;
+    messageCode: string;
+    message: string;
+    additionalData?: Record<string, any>;
+  }): never {
+    const { legacy, messageCode, message, additionalData } = params;
+    throw new BusinessExceptionDto({
+      responseCode: HttpStatus.BAD_REQUEST,
+      messageCode: CODE_400,
+      message: MSG_400,
+      legacy,
+      transactionId: this.transactionId,
+      data: {
+        message,
+        messageCode,
+        ...additionalData,
+      },
+    });
   }
 }

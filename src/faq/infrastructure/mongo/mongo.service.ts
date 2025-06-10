@@ -49,6 +49,7 @@ export class MongoService
       id: (doc._id as Types.ObjectId).toHexString(),
       question: doc.question,
       answer: doc.answer,
+      embedding: doc.embedding,
     });
   }
 
@@ -58,7 +59,7 @@ export class MongoService
    * @param data Objeto con la pregunta y respuesta
    * @returns Entidad FaqEntity creada
    */
-  async create(data: { question: string; answer: string }): Promise<FaqEntity> {
+  async create(data: { question: string; answer: string; embedding: number[]; }): Promise<FaqEntity> {
     const start = Date.now();
     const logData = {
       transactionId: this.transactionId,

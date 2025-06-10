@@ -6,6 +6,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { removeAccents } from '../../../shared/utils/common-utils';
 import { ALLOWED_TEXT_REGEX } from '../../../shared/constants/constants';
 
 /**
@@ -14,7 +15,7 @@ import { ALLOWED_TEXT_REGEX } from '../../../shared/constants/constants';
 export class CreateFaqDto {
   @ApiProperty({
     description: 'Pregunta frecuente del usuario',
-    example: '¿Puedo llevar mascotas? 🐶',
+    example: 'Puedo llevar mascotas',
   })
   @IsString({ message: 'El campo $property debe ser una cadena de texto.' })
   @IsNotEmpty({ message: 'El campo $property no puede estar vacío.' })
@@ -22,15 +23,14 @@ export class CreateFaqDto {
     message: 'El campo $property no puede tener más de $constraint1 caracteres.',
   })
   @Matches(ALLOWED_TEXT_REGEX, {
-    message:
-      'El campo $property contiene caracteres no permitidos. Solo letras, números, puntuación, @ y emojis.',
+    message: 'El campo $property solo debe contener letras y números sin acentos.',
   })
-  @Transform(({ value }) => value?.trim().toLowerCase())
+  @Transform(({ value }) => removeAccents(value.trim().toLowerCase()))
   readonly question: string;
 
   @ApiProperty({
     description: 'Respuesta a la pregunta',
-    example: 'Sí, se permiten mascotas pequeñas. 🐾',
+    example: 'Si, se permiten mascotas',
   })
   @IsString({ message: 'El campo $property debe ser una cadena de texto.' })
   @IsNotEmpty({ message: 'El campo $property no puede estar vacío.' })
@@ -38,9 +38,8 @@ export class CreateFaqDto {
     message: 'El campo $property no puede tener más de $constraint1 caracteres.',
   })
   @Matches(ALLOWED_TEXT_REGEX, {
-    message:
-      'El campo $property contiene caracteres no permitidos. Solo letras, números, puntuación, @ y emojis.',
+    message: 'El campo $property solo debe contener letras y números sin acentos.',
   })
-  @Transform(({ value }) => value?.trim().toLowerCase())
+  @Transform(({ value }) => removeAccents(value.trim().toLowerCase()))
   readonly answer: string;
 }

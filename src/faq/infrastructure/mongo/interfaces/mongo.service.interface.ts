@@ -10,7 +10,7 @@ export interface IMongoService {
    * Crea una nueva entidad FAQ
    * @param data Objeto con la pregunta y respuesta
    */
-  create(data: { question: string; answer: string }): Promise<FaqEntity>;
+  create(data: { question: string; answer: string; embedding: number[]; }): Promise<FaqEntity>;
 
   /**
    * Obtiene todas las FAQs
