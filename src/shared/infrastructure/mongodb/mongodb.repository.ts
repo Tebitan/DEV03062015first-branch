@@ -70,15 +70,24 @@ export abstract class MongoRepository<TModel, TEntity> implements BaseRepository
       projection = {},
       sort = {},
       maxTimeMS = 5000,
+      vectorSearch,
     } = options;
-    const skip = (page - 1) * limit;
-    const docs = await this.model
-      .find(filter, projection)
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .maxTimeMS(maxTimeMS);
-
+    const aggregationPipeline: any[] = [];
+    if (vectorSearch) {
+      aggregationPipeline.push({
+        $vectorSearch: { ...vectorSearch },
+      });
+    }
+    if (Object.keys(sort).length > 0) {
+      aggregationPipeline.push({ $sort: sort });
+    }
+    if (projection && Object.keys(projection).length > 0) {
+      aggregationPipeline.push({ $project: projection });
+    }
+    aggregationPipeline.push({ $match: filter });
+    aggregationPipeline.push({ $limit: limit });
+    aggregationPipeline.push({ $skip: (page - 1) * limit });
+    const docs = await this.model.aggregate(aggregationPipeline, { maxTimeMS });
     return docs.map((doc) => this.mapToEntity(doc));
   }
 

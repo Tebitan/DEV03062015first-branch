@@ -1,4 +1,3 @@
-import { MongoQueryOptionsDto } from '../../../../shared/domain/mongo-query-options.dto';
 import { FaqEntity } from '../../../domain/entities/faq.entity';
 
 /**
@@ -8,26 +7,20 @@ import { FaqEntity } from '../../../domain/entities/faq.entity';
 export interface IMongoService {
   /**
    * Crea una nueva entidad FAQ
-   * @param data Objeto con la pregunta y respuesta
+   * @param data Objeto con la pregunta , respuesta y embedding Objecto generado por IA 
    */
-  create(data: { question: string; answer: string; embedding: number[]; }): Promise<FaqEntity>;
+  createFaq(data: { question: string; answer: string; embedding: number[]; }): Promise<FaqEntity>;
 
   /**
-   * Obtiene todas las FAQs
-   * @param maxTimeMS Tiempo máximo de ejecución en milisegundos (opcional)
+   * Realiza la busqueda por vectores
+   * @param embedding Objecto generado por IA 
+   * @returns Promise<FaqEntity[]>
    */
-  findAll(maxTimeMS?: number): Promise<FaqEntity[]>;
+  findVectorSearch(embedding: number[]): Promise<FaqEntity[]>;
 
   /**
    * Busca FAQs por coincidencia en la pregunta
-   * @param query Texto a buscar
-   * @param maxTimeMS Tiempo máximo de ejecución en milisegundos (opcional)
+   * @param question pregunta por buscar 
    */
-  findByQuestion(query: string, maxTimeMS?: number): Promise<FaqEntity[]>;
-
-  /**
-   * Búsqueda avanzada con filtros, paginación, proyección, etc.
-   * @param options Opciones avanzadas de consulta
-   */
-  findWithOptions(options: MongoQueryOptionsDto): Promise<FaqEntity[]>;
+  findByQuestion(question: string): Promise<FaqEntity[]>;
 }

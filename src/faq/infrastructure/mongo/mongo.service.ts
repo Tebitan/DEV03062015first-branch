@@ -28,6 +28,11 @@ export class MongoService
   private readonly logger = new Logger(MongoService.name);
   private readonly collection: string;
   private readonly maxTimeMS: number;
+  private readonly embeddingsIndex: string;
+  private readonly embeddingsField: string;
+  private readonly embeddingsResult: number;
+  private readonly embeddingsCandidates: number;
+  private readonly embeddingsLimit: number;
 
   constructor(
     @InjectModel(Faq.name) faqModel: Model<Faq & Document>,
@@ -37,6 +42,46 @@ export class MongoService
     super(faqModel);
     this.collection = this.configService.get<string>('MONGO_FAQ_COLLECTION') ?? 'faq';
     this.maxTimeMS = this.configService.get<number>('MONGO_QUERY_TIMEOUT', 5000);
+    this.embeddingsIndex = this.configService.get<string>('MONGO_EMBEDDINGS_INDEX') ?? 'ind_emb_faq';
+    this.embeddingsField = this.configService.get<string>('MONGO_EMBEDDINGS_FIELD') ?? 'embedding';
+    this.embeddingsResult = this.configService.get<number>('MONGO_EMBEDDINGS_RESULT', 1);
+    this.embeddingsCandidates = this.configService.get<number>('MONGO_EMBEDDINGS_CANDIDATES', 50);
+    this.embeddingsLimit = this.configService.get<number>('MONGO_EMBEDDINGS_LIMIT', 1);
+  }
+
+  /**
+   * Realiza la búsqueda vectorial
+   * @param embedding vectores generados IA
+   * @returns  Lista de FAQs encontradas
+   */
+  async findVectorSearch(embedding: number[]): Promise<FaqEntity[]> {
+    const start = Date.now();
+    const query: MongoQueryOptionsDto = {
+      vectorSearch: {
+        index: this.embeddingsIndex,
+        path: this.embeddingsField,
+        queryVector: embedding,
+        k: this.embeddingsResult,
+        numCandidates: this.embeddingsCandidates,
+        limit: this.embeddingsLimit,
+      },
+      limit: this.embeddingsLimit,
+      maxTimeMS: this.maxTimeMS,
+    }
+    const logData = {
+      transactionId: this.transactionId,
+      legacy: LEGACY_MONGODB,
+      request: { operation: 'findVectorSearch', collection: this.collection, query },
+    };
+    this.logger.log('START Select Mongo', logData);
+    const results: FaqEntity[] = await this.findWithOptions(query);
+    console.dir(results);
+    this.logger.log('END Select Mongo', {
+      ...logData,
+      response: results,
+      processingTime: `${Date.now() - start}ms`,
+    });
+    return results;
   }
 
   /**
@@ -49,7 +94,7 @@ export class MongoService
       id: (doc._id as Types.ObjectId).toHexString(),
       question: doc.question,
       answer: doc.answer,
-      embedding: doc.embedding,
+      embedding: [],
     });
   }
 
@@ -59,7 +104,7 @@ export class MongoService
    * @param data Objeto con la pregunta y respuesta
    * @returns Entidad FaqEntity creada
    */
-  async create(data: { question: string; answer: string; embedding: number[]; }): Promise<FaqEntity> {
+  async createFaq(data: { question: string; answer: string; embedding: number[]; }): Promise<FaqEntity> {
     const start = Date.now();
     const logData = {
       transactionId: this.transactionId,
@@ -67,92 +112,35 @@ export class MongoService
       request: { collection: this.collection, data },
     };
     this.logger.log('START Insert Mongo', logData);
-    const created = await this.model.create(data);
-    const result = this.mapToEntity(created);
+    const created = await this.create(data);
     this.logger.log('END Insert Mongo', {
       ...logData,
-      response: result,
+      response: created,
       processingTime: `${Date.now() - start}ms`,
     });
-    return result;
+    return created;
   }
 
   /**
-  * Busca preguntas frecuentes que coincidan parcialmente con una cadena.
-  * Utiliza expresiones regulares insensibles a mayúsculas/minúsculas.
-  * @param query Texto a buscar
-  * @param maxTimeMS Tiempo máximo de consulta en milisegundos
+  * Busca preguntas frecuentes que coincidan con la pregunta.
+  * @param question pregunta a buscar
   * @returns Lista de FAQs encontradas
   */
-  async findByQuestion(query: string): Promise<FaqEntity[]> {
+  async findByQuestion(question: string): Promise<FaqEntity[]> {
     const start = Date.now();
+    const query: MongoQueryOptionsDto = {
+      filter: { question },
+      limit: 1,
+      maxTimeMS: this.maxTimeMS,
+    }
     const logData = {
       transactionId: this.transactionId,
       legacy: LEGACY_MONGODB,
       request: { operation: 'findByQuestion', collection: this.collection, query },
     };
-    this.logger.log('START findByQuestion', logData);
-    const results = await this.findByField('question', query, this.maxTimeMS);
-    this.logger.log('END findByQuestion', {
-      ...logData,
-      response: results,
-      processingTime: `${Date.now() - start}ms`,
-    });
-    return results;
-  }
-
-  /**
-   * Obtiene todas las preguntas frecuentes.
-   * @param maxTimeMS Tiempo máximo de ejecución en milisegundos
-   * @returns Lista de FAQs
-   */
-  async findAll(): Promise<FaqEntity[]> {
-    const start = Date.now();
-    const logData = {
-      transactionId: this.transactionId,
-      legacy: LEGACY_MONGODB,
-      request: { operation: 'findAll', collection: this.collection },
-    };
-    this.logger.log('START findAll', logData);
-    const docs = await this.model.find().maxTimeMS(this.maxTimeMS);
-    const results = docs.map((doc) => this.mapToEntity(doc));
-    this.logger.log('END findAll', {
-      ...logData,
-      response: results,
-      processingTime: `${Date.now() - start}ms`,
-    });
-    return results;
-  }
-
-  /**
-   * Realiza una búsqueda avanzada con filtros, paginación, ordenamiento, etc.
-   * @param options Opciones de búsqueda avanzadas
-   * @returns Lista de FAQs encontradas
-   */
-  async findWithOptions(options: MongoQueryOptionsDto): Promise<FaqEntity[]> {
-    const start = Date.now();
-    const logData = {
-      transactionId: this.transactionId,
-      legacy: LEGACY_MONGODB,
-      request: { operation: 'findWithOptions', collection: this.collection, options },
-    };
-    this.logger.log('START findWithOptions', logData);
-    const {
-      filter = {},
-      page = 1,
-      limit = 10,
-      projection = {},
-      sort = {},
-    } = options;
-    const skip = (page - 1) * limit;
-    const docs = await this.model
-      .find(filter, projection)
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .maxTimeMS(this.maxTimeMS);
-    const results = docs.map((doc) => this.mapToEntity(doc));
-    this.logger.log('END findWithOptions', {
+    this.logger.log('START Select Mongo', logData);
+    const results = await this.findWithOptions(query);
+    this.logger.log('END Select Mongo', {
       ...logData,
       response: results,
       processingTime: `${Date.now() - start}ms`,

@@ -1,10 +1,16 @@
 export default () => ({
-    globalTimeoutMs: parseInt(process.env.GLOBAL_TIMEOUT_MS ?? '3000', 10),
+    port: parseInt(process.env.PORT ?? '8080', 10),
+    globalTimeoutMs: parseInt(process.env.GLOBAL_TIMEOUT_MS ?? '5000', 10),
     mongoUri: process.env.MONGO_URI,
-    aiApiKey: process.env.AI_API_KEY,
     mongoFaqCollectionName: process.env.MONGO_FAQ_COLLECTION,
     mongoQueryTimeout: parseInt(process.env.MONGO_QUERY_TIMEOUT ?? '2000', 10),
+    mongoEmbeddingsIndex: process.env.MONGO_EMBEDDINGS_INDEX,
+    mongoEmbeddingsField: process.env.MONGO_EMBEDDINGS_FIELD,
+    mongoEmbeddingsResult: parseInt(process.env.MONGO_EMBEDDINGS_RESULT ?? '1',10),
+    mongoEmbeddingsCandidates: parseInt(process.env.MONGO_EMBEDDINGS_CANDIDATES ?? '50',10),
+    mongoEmbeddingsLimit: parseInt(process.env.MONGO_EMBEDDINGS_LIMIT ?? '1',10),
     restTimeout: parseInt(process.env.REST_TIMEOUT ?? '2000', 10),
+    aiApiKey: process.env.AI_API_KEY,
     aiEndpointEmbedding:process.env.AI_ENDPOINT_EMBEDDING,
     aiModelEmbedding:process.env.AI_MODEL_EMBEDDING,
 });

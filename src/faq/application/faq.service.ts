@@ -84,6 +84,48 @@ export class FaqService {
   }
 
   /**
+   * findFaqByQestion
+   * @description Realiza la busqueda por pregunta unsado una busqueda vectorial por embeddin
+   * @param findFaqByQuestionDto Request recibido 
+   * @returns ApiResponseDto
+   */
+  public async findFaqByQestion(findFaqByQuestionDto: FindFaqByQuestionDto): Promise<ApiResponseDto> {
+    try {
+      const { question } = findFaqByQuestionDto;
+      const responseLegacy: HttpResponse<Embedding> = await this.generateEmbedding(question);
+      await this.validateResponseLegacy(responseLegacy);
+      const embedding: number[] = responseLegacy.data.data[0].embedding;
+      const faqs:FaqEntity[] = await this.searchFaqByEmbedding(embedding);   
+      return new ApiResponseDto({
+        responseCode: HttpStatus.OK,
+        messageCode: CODE_200,
+        message: MSG_200,
+        legacy: LEGACY,
+        transactionId: this.transactionId,
+        data: faqs,
+      });
+    } catch (error) {
+      if (error instanceof BusinessExceptionDto) throw error;
+      this.logger.error(error.message, { transactionId: this.transactionId, stack: error.stack });
+      throw new BusinessExceptionDto({
+        legacy: LEGACY_MONGODB,
+        transactionId: this.transactionId,
+        data: { message: error.message },
+      });
+    }
+  }
+
+  /**
+   * searchFaqByEmbedding
+   * @description Realiza la busqueda por Embedding
+   * @param embedding Dato embedding
+   * @returns FaqEntity[]
+   */
+  public async searchFaqByEmbedding(embedding: number[]): Promise<FaqEntity[]> {
+    return this.mongoService.findVectorSearch(embedding);
+  }
+
+  /**
    * saveFaq
    * @description Inserta una nueva FAQ en la base de datos
    * @param createFaqDto Datos de la FAQ
@@ -92,7 +134,7 @@ export class FaqService {
    * @returns FaqEntity
    */
   public async saveFaq(createFaqDto: CreateFaqDto, embedding: number[]): Promise<FaqEntity> {
-    return this.mongoService.create({ ...createFaqDto, embedding });
+    return this.mongoService.createFaq({ ...createFaqDto, embedding });
   }
 
   /**
@@ -104,10 +146,7 @@ export class FaqService {
    */
   public async validateIfQuestionExists(question: string): Promise<void> {
     const normalizedQuestion = removeAccents(question.trim().toLowerCase());
-    const existing = await this.mongoService.findWithOptions({
-      filter: { question: normalizedQuestion },
-      limit: 1,
-    });
+    const existing = await this.mongoService.findByQuestion(normalizedQuestion);
     if (existing && existing.length > 0) {
       this.throwBusinessError({
         legacy: LEGACY_MONGODB,

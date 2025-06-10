@@ -31,4 +31,16 @@ export class MongoQueryOptionsDto {
    * Tiempo máximo en milisegundos que el servidor puede tardar en ejecutar la consulta
    */
   maxTimeMS?: number = 5000;
+
+  /**
+   * Configuración de búsqueda vectorial para consultas avanzadas
+   */
+  vectorSearch?: {
+    index: string; //Nombre del índice vectorial en MongoDB Atlas
+    path: string; //Campo dentro de la colección que almacena los embeddings
+    queryVector: number[]; //Vector de consulta, usado para encontrar similitudes en la base de datos
+    k: number; //Cantidad de resultados más similares que se deben devolver
+    numCandidates:number; //Número inicial de candidatos considerados antes de elegir los k más cercanos
+    limit:number; //Límite final de resultados a retornar (puede ser redundante con k) para evitar error "PlanExecutor error during aggregation :: caused by :: \"limit\" is required"
+  };
 }
