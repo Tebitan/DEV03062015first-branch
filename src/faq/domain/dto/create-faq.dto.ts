@@ -30,7 +30,7 @@ export class CreateFaqDto {
 
   @ApiProperty({
     description: 'Respuesta a la pregunta',
-    example: 'Si, se permiten mascotas',
+    example: 'Si se permiten mascotas',
   })
   @IsString({ message: 'El campo $property debe ser una cadena de texto.' })
   @IsNotEmpty({ message: 'El campo $property no puede estar vacío.' })

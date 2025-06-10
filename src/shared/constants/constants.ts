@@ -1,6 +1,6 @@
 export const SERVICE_PREFIX='MS/FAQS/1.0';
 export const SERVICE_VERSION='1.0';
-export const SERVICE_DESCRIPTION = 'Realiza CRUD de Faqs y realiza la integracion con Groq (compatible con OpenAI)';
+export const SERVICE_DESCRIPTION = 'Realiza Creación de FAQ y realiza la integración con IA para la generación embedding para poder realizar búsqueda vectoriales';
 export const END_POINT_METHOD_FAQ = 'Faq'
 export const ALLOWED_TEXT_REGEX = /^[a-zA-Z0-9\s]+$/;
 export const CODE_200 ='OK';
