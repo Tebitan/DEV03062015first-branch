@@ -7,8 +7,10 @@ import { TransactionIdProvider } from '../shared/providers/transaction-id.provid
 import { HttpProviderModule } from '../shared/infrastructure/http/http-provider.module';
 import { Faq, FaqSchema } from './infrastructure/mongo/schemas/faq.schema';
 import { ClientRestService } from './infrastructure/http/rest/client-rest.service';
+import { CacheProviderModule } from '../shared/infrastructure/cache/cache-provider.module';
 import { FaqService } from './application/faq.service';
 import { FaqController } from './controllers/faq.controller';
+import { AdapterCacheService } from './infrastructure/cache/adapter-cache.service';
 
 /**
  * Módulo de NestJS que agrupa el controller, service y las dependencias necesarias para FAQs
@@ -27,9 +29,10 @@ import { FaqController } from './controllers/faq.controller';
         },
       },
     ]),
-    HttpProviderModule
+    HttpProviderModule,
+    CacheProviderModule
   ],
   controllers: [FaqController],
-  providers: [TransactionIdProvider, FaqService, MongoService, ClientRestService],
+  providers: [TransactionIdProvider, FaqService, MongoService, ClientRestService, AdapterCacheService],
 })
 export class FaqModule { }

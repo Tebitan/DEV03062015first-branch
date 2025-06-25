@@ -18,6 +18,7 @@ import { removeAccents } from '../../shared/utils/common-utils';
 import { ApiResponseDto } from '../../shared/domain/api-response.dto';
 import { HttpResponse } from '../../shared/domain/http-client-options.dto';
 import { Embedding } from '../infrastructure/http/rest/dto/rest.dto';
+import { AdapterCacheService } from '../infrastructure/cache/adapter-cache.service';
 
 /**
  * Servicio encargado de la lógica de negocio para el manejo de preguntas frecuentes (FAQ).
@@ -48,6 +49,7 @@ export class FaqService {
     @Inject('TransactionId') private readonly transactionId: string,
     private readonly mongoService: MongoService,
     private readonly clientRestService: ClientRestService,
+    private readonly adapterCacheService: AdapterCacheService,
   ) { }
 
   /**
@@ -91,12 +93,15 @@ export class FaqService {
    */
   public async findFaqByQestion(findFaqByQuestionDto: FindFaqByQuestionDto): Promise<ApiResponseDto> {
     try {
+      let response: ApiResponseDto;
       const { question } = findFaqByQuestionDto;
+      response = await this.getCache(question);
+      if (response) return response;
       const responseLegacy: HttpResponse<Embedding> = await this.generateEmbedding(question);
       await this.validateResponseLegacy(responseLegacy);
       const embedding: number[] = responseLegacy.data.data[0].embedding;
-      const faqs:FaqEntity[] = await this.searchFaqByEmbedding(embedding);   
-      return new ApiResponseDto({
+      const faqs: FaqEntity[] = await this.searchFaqByEmbedding(embedding);
+      response = new ApiResponseDto({
         responseCode: HttpStatus.OK,
         messageCode: CODE_200,
         message: MSG_200,
@@ -104,6 +109,8 @@ export class FaqService {
         transactionId: this.transactionId,
         data: faqs,
       });
+      this.saveCache(question, response);
+      return response;
     } catch (error) {
       if (error instanceof BusinessExceptionDto) throw error;
       this.logger.error(error.message, { transactionId: this.transactionId, stack: error.stack });
@@ -113,6 +120,27 @@ export class FaqService {
         data: { message: error.message },
       });
     }
+  }
+
+  /**
+   * getCache
+   * @description Obtiene la cache de la pregunta recurrente
+   * @param question Pregunta recurrente
+   * @returns ApiResponseDto|undefined
+   */
+  public async getCache(question: string): Promise<ApiResponseDto | undefined> {
+    return this.adapterCacheService.getFaqConcurrent(this.normalizeQuestion(question));
+  }
+
+  /**
+   * saveCache
+   * @description Guarda en cache la pregunta recurrente 
+   * @param question Pregunta recurrente
+   * @param response Respuesta del servicio
+   * @returns void
+   */
+  public async saveCache(question: string, response: ApiResponseDto): Promise<void> {
+    return this.adapterCacheService.setFaqConcurrent(this.normalizeQuestion(question), response);
   }
 
   /**
@@ -134,7 +162,8 @@ export class FaqService {
    * @returns FaqEntity
    */
   public async saveFaq(createFaqDto: CreateFaqDto, embedding: number[]): Promise<FaqEntity> {
-    return this.mongoService.createFaq({ ...createFaqDto, embedding });
+    const question = this.normalizeQuestion(createFaqDto.question);
+    return this.mongoService.createFaq({ ...createFaqDto, question, embedding });
   }
 
   /**
@@ -145,8 +174,7 @@ export class FaqService {
    * @throws BusinessException si la pregunta ya existe
    */
   public async validateIfQuestionExists(question: string): Promise<void> {
-    const normalizedQuestion = removeAccents(question.trim().toLowerCase());
-    const existing = await this.mongoService.findByQuestion(normalizedQuestion);
+    const existing = await this.mongoService.findByQuestion(this.normalizeQuestion(question));
     if (existing && existing.length > 0) {
       this.throwBusinessError({
         legacy: LEGACY_MONGODB,
@@ -228,5 +256,15 @@ export class FaqService {
         ...additionalData,
       },
     });
+  }
+
+  /**
+   * nomalizeQuestion
+   * @description Aplica formato a la pregunta 
+   * @param question Pregunta del cliente
+   * @returns string
+   */
+  public normalizeQuestion(question: string): string {
+    return removeAccents(question.trim().toLowerCase());
   }
 }

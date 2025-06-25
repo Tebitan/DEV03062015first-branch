@@ -15,4 +15,5 @@ export const validationSchema = Joi.object({
   AI_API_KEY: Joi.string().required(),
   AI_ENDPOINT_EMBEDDING:Joi.string().uri().required(),
   AI_MODEL_EMBEDDING:Joi.string().required(),
+  CACHE_TTL:Joi.number().required(),
 });

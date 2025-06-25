@@ -17,3 +17,4 @@ export const LEGACY_MONGODB = 'MongoDB';
 export const LEGACY_IA = 'IA';
 export const LEGACY = 'Cloud';
 export const SERVICE_NAME ='msfagback';
+export const LEGACY_CACHE = 'cache';

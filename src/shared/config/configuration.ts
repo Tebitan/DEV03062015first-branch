@@ -13,4 +13,5 @@ export default () => ({
     aiApiKey: process.env.AI_API_KEY,
     aiEndpointEmbedding:process.env.AI_ENDPOINT_EMBEDDING,
     aiModelEmbedding:process.env.AI_MODEL_EMBEDDING,
+    cacheTtl:parseInt(process.env.CACHE_TTL ?? '0', 10),
 });
